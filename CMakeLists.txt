@@ -4,7 +4,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 PROJECT(test-curl
 		LANGUAGES CXX)
 
-
+# Prefer static libs over shared lib
 LIST(REVERSE CMAKE_FIND_LIBRARY_SUFFIXES)
 #========== Add CPM package manager ================= 
 set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM.cmake")
@@ -70,31 +70,33 @@ function(print_target_properties tgt)
         endif()
     endforeach(prop)
 endfunction(print_target_properties)
-#set(BUILD_OPENSSL_WORKING_DIR ${CMAKE_BINARY_DIR}/_external/build-openssl)
-#set(BUILD_OPENSSL_SRC_DIR ${CMAKE_SOURCE_DIR}/build-openssl)
-#set(BUILD_OPENSSL_INSTALL_DIR "${BUILD_OPENSSL_WORKING_DIR}/install/OpenSSL")
-#file(MAKE_DIRECTORY ${BUILD_OPENSSL_WORKING_DIR})
-#if(NOT EXISTS ${BUILD_OPENSSL_INSTALL_DIR})
-#
-#	message(STATUS "Building OpenSSL.. at ${BUILD_OPENSSL_WORKING_DIR}, Install DIR ${BUILD_OPENSSL_INSTALL_DIR}")
-#	execute_process(
-#			COMMAND ${CMAKE_COMMAND} ${BUILD_OPENSSL_SRC_DIR} -DINSTALL_DIR=${BUILD_OPENSSL_INSTALL_DIR}
-#			WORKING_DIRECTORY ${BUILD_OPENSSL_WORKING_DIR}
-#	)
-#	execute_process(
-#			COMMAND ${CMAKE_COMMAND} --build .
-#			WORKING_DIRECTORY ${BUILD_OPENSSL_WORKING_DIR}
-#	)
-#else()
-#	message(STATUS "${BUILD_OPENSSL_INSTALL_DIR} already exists, skips rebuilding..")
-#endif()
-#
-#set(OPENSSL_ROOT_DIR "${BUILD_OPENSSL_ROOT_DIR}/OpenSSL")
+
+
+set(BUILD_OPENSSL_WORKING_DIR ${CMAKE_BINARY_DIR}/_external/build-openssl)
+set(BUILD_OPENSSL_SRC_DIR ${CMAKE_SOURCE_DIR}/build-openssl)
+set(BUILD_OPENSSL_INSTALL_DIR "${BUILD_OPENSSL_WORKING_DIR}/install/OpenSSL")
+file(MAKE_DIRECTORY ${BUILD_OPENSSL_WORKING_DIR})
+if(NOT EXISTS ${BUILD_OPENSSL_INSTALL_DIR})
+
+	message(STATUS "Building OpenSSL.. at ${BUILD_OPENSSL_WORKING_DIR}, Install DIR ${BUILD_OPENSSL_INSTALL_DIR}")
+	execute_process(
+			COMMAND ${CMAKE_COMMAND} ${BUILD_OPENSSL_SRC_DIR} -DINSTALL_DIR=${BUILD_OPENSSL_INSTALL_DIR}
+			WORKING_DIRECTORY ${BUILD_OPENSSL_WORKING_DIR}
+	)
+	execute_process(
+			COMMAND ${CMAKE_COMMAND} --build .
+			WORKING_DIRECTORY ${BUILD_OPENSSL_WORKING_DIR}
+	)
+else()
+	message(STATUS "${BUILD_OPENSSL_INSTALL_DIR} already exists, skips rebuilding..")
+endif()
+
+set(OPENSSL_ROOT_DIR "${BUILD_OPENSSL_INSTALL_DIR}" CACHE INTERNAL "OPENSSL ROOT DIR")
+message(WARNING "OPENSSL ROOT DIR ${OPENSSL_ROOT_DIR}")
 
 if (MSVC)
 	set(CURL_PLATFORM_OPTIONS "CMAKE_USE_WINSSL ON;CMAKE_USE_OPENSSL OFF")
 elseif(APPLE)
-	set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl" CACHE INTERNAL "OPENSSL ROOT DIR")
 	# set(OPENSSL_LIBRARIES "/usr/local/opt/openssl/lib" CACHE INTERNAL "OPENSSL lib dir")
 	# set(ENV{OPENSSL_ROOT_DIR} "/usr/local/opt/openssl")
 	# find_library(OPENSSL_CRYPTO_LIB
@@ -117,7 +119,7 @@ elseif(APPLE)
 	# target_link_libraries(libssl INTERFACE ${OPENSSL_SSL_LIB})
 	# target_include_directories(libssl INTERFACE ${OPENSSL_INCLUDE_DIR})
 	# target_include_directories(libcrypto INTERFACE ${OPENSSL_INCLUDE_DIR})
-	# set(CURL_PLATFORM_OPTIONS "CMAKE_USE_SECTRANSP OFF;CMAKE_USE_OPENSSL ON")
+	set(CURL_PLATFORM_OPTIONS "CMAKE_USE_SECTRANSP OFF;CMAKE_USE_OPENSSL ON")
 else()
 	set(CURL_PLATFORM_OPTIONS "CMAKE_USE_OPENSSL ON")
 endif()

@@ -29,70 +29,32 @@ list(FILTER CMAKE_PROPERTY_LIST EXCLUDE REGEX "^LOCATION$|^LOCATION_|_LOCATION$"
 # For some reason, "TYPE" shows up twice - others might too?
 list(REMOVE_DUPLICATES CMAKE_PROPERTY_LIST)
 
-# build whitelist by filtering down from CMAKE_PROPERTY_LIST in case cmake is
-# a different version, and one of our hardcoded whitelisted properties
-# doesn't exist!
-unset(CMAKE_WHITELISTED_PROPERTY_LIST)
-foreach(prop ${CMAKE_PROPERTY_LIST})
-    if(prop MATCHES "^(INTERFACE|[_a-z]|IMPORTED_LIBNAME_|MAP_IMPORTED_CONFIG_)|^(COMPATIBLE_INTERFACE_(BOOL|NUMBER_MAX|NUMBER_MIN|STRING)|EXPORT_NAME|IMPORTED(_GLOBAL|_CONFIGURATIONS|_LIBNAME)?|NAME|TYPE|NO_SYSTEM_FROM_IMPORTED)$")
-        list(APPEND CMAKE_WHITELISTED_PROPERTY_LIST ${prop})
-    endif()
-endforeach(prop)
+OPTION(ENABLE_OPENSSL_FROM_SOURCE "BUILD OPENSSL FROM SOURCE AT CONFIGURE TIME" ON)
 
-function(print_properties)
-    message ("CMAKE_PROPERTY_LIST = ${CMAKE_PROPERTY_LIST}")
-endfunction(print_properties)
+if(ENABLE_OPENSSL_FROM_SOURCE)
+	set(BUILD_OPENSSL_WORKING_DIR ${CMAKE_BINARY_DIR}/_external/build-openssl)
+	set(BUILD_OPENSSL_SRC_DIR ${CMAKE_SOURCE_DIR}/build-openssl)
+	set(BUILD_OPENSSL_INSTALL_DIR "${BUILD_OPENSSL_WORKING_DIR}/install/OpenSSL")
+	file(MAKE_DIRECTORY ${BUILD_OPENSSL_WORKING_DIR})
+	if(NOT EXISTS ${BUILD_OPENSSL_INSTALL_DIR})
+		message(STATUS "Building OpenSSL.. at ${BUILD_OPENSSL_WORKING_DIR}, Install DIR ${BUILD_OPENSSL_INSTALL_DIR}")
+		execute_process(
+				COMMAND ${CMAKE_COMMAND} ${BUILD_OPENSSL_SRC_DIR} -DINSTALL_DIR=${BUILD_OPENSSL_INSTALL_DIR}
+				WORKING_DIRECTORY ${BUILD_OPENSSL_WORKING_DIR}
+		)
+		execute_process(
+				COMMAND ${CMAKE_COMMAND} --build .
+				WORKING_DIRECTORY ${BUILD_OPENSSL_WORKING_DIR}
+		)
+	else()
+		message(STATUS "${BUILD_OPENSSL_INSTALL_DIR} already exists, skips rebuilding..")
+	endif()
 
-function(print_whitelisted_properties)
-    message ("CMAKE_WHITELISTED_PROPERTY_LIST = ${CMAKE_WHITELISTED_PROPERTY_LIST}")
-endfunction(print_whitelisted_properties)
-
-function(print_target_properties tgt)
-    if(NOT TARGET ${tgt})
-        message("There is no target named '${tgt}'")
-        return()
-    endif()
-
-    get_target_property(target_type ${tgt} TYPE)
-    if(target_type STREQUAL "INTERFACE_LIBRARY")
-        set(PROP_LIST ${CMAKE_WHITELISTED_PROPERTY_LIST})
-    else()
-        set(PROP_LIST ${CMAKE_PROPERTY_LIST})
-    endif()
-
-    foreach (prop ${PROP_LIST})
-        string(REPLACE "<CONFIG>" "${CMAKE_BUILD_TYPE}" prop ${prop})
-        # message ("Checking ${prop}")
-        get_property(propval TARGET ${tgt} PROPERTY ${prop} SET)
-        if (propval)
-            get_target_property(propval ${tgt} ${prop})
-            message ("${tgt} ${prop} = ${propval}")
-        endif()
-    endforeach(prop)
-endfunction(print_target_properties)
-
-
-set(BUILD_OPENSSL_WORKING_DIR ${CMAKE_BINARY_DIR}/_external/build-openssl)
-set(BUILD_OPENSSL_SRC_DIR ${CMAKE_SOURCE_DIR}/build-openssl)
-set(BUILD_OPENSSL_INSTALL_DIR "${BUILD_OPENSSL_WORKING_DIR}/install/OpenSSL")
-file(MAKE_DIRECTORY ${BUILD_OPENSSL_WORKING_DIR})
-if(NOT EXISTS ${BUILD_OPENSSL_INSTALL_DIR})
-
-	message(STATUS "Building OpenSSL.. at ${BUILD_OPENSSL_WORKING_DIR}, Install DIR ${BUILD_OPENSSL_INSTALL_DIR}")
-	execute_process(
-			COMMAND ${CMAKE_COMMAND} ${BUILD_OPENSSL_SRC_DIR} -DINSTALL_DIR=${BUILD_OPENSSL_INSTALL_DIR}
-			WORKING_DIRECTORY ${BUILD_OPENSSL_WORKING_DIR}
-	)
-	execute_process(
-			COMMAND ${CMAKE_COMMAND} --build .
-			WORKING_DIRECTORY ${BUILD_OPENSSL_WORKING_DIR}
-	)
+	set(OPENSSL_ROOT_DIR "${BUILD_OPENSSL_INSTALL_DIR}" CACHE INTERNAL "OPENSSL ROOT DIR")
+	message(MESSAGE "Setting OPENSSL ROOT DIR to newly built OpenSSL ${OPENSSL_ROOT_DIR}")
 else()
-	message(STATUS "${BUILD_OPENSSL_INSTALL_DIR} already exists, skips rebuilding..")
+	# set(OPENSSL_LIBRARIES "/usr/local/opt/openssl/lib" CACHE INTERNAL "OPENSSL lib dir")
 endif()
-
-set(OPENSSL_ROOT_DIR "${BUILD_OPENSSL_INSTALL_DIR}" CACHE INTERNAL "OPENSSL ROOT DIR")
-message(WARNING "OPENSSL ROOT DIR ${OPENSSL_ROOT_DIR}")
 
 if (MSVC)
 	set(CURL_PLATFORM_OPTIONS "CMAKE_USE_WINSSL ON;CMAKE_USE_OPENSSL OFF")
@@ -135,10 +97,8 @@ CPMAddPackage(
 		"BUILD_TESTING OFF"
 		"WITH_STATIC_RT ON"
 		"CMAKE_USE_LIBSSH2 OFF"
-        ${CURL_PLATFORM_OPTIONS}
+		${CURL_PLATFORM_OPTIONS}
 )
 
 add_executable(test-curl main.cpp)
 target_link_libraries(test-curl libcurl)
-print_target_properties(test-curl)
-print_target_properties(libcurl)

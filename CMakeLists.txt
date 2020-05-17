@@ -15,20 +15,8 @@ if(NOT EXISTS ${CPM_DOWNLOAD_LOCATION})
 	file(DOWNLOAD https://github.com/TheLartians/CPM.cmake/releases/download/v${CPM_VERSION}/CPM.cmake ${CPM_DOWNLOAD_LOCATION})
 endif(NOT EXISTS ${CPM_DOWNLOAD_LOCATION})
 include(${CPM_DOWNLOAD_LOCATION})
-include(ExternalProject)
 
 ##========== Add dependency =================
-# Get all propreties that cmake supports
-execute_process(COMMAND cmake --help-property-list OUTPUT_VARIABLE CMAKE_PROPERTY_LIST)
-
-# Convert command output into a CMake list
-STRING(REGEX REPLACE ";" "\\\\;" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
-STRING(REGEX REPLACE "\n" ";" CMAKE_PROPERTY_LIST "${CMAKE_PROPERTY_LIST}")
-# Fix https://stackoverflow.com/questions/32197663/how-can-i-remove-the-the-location-property-may-not-be-read-from-target-error-i
-list(FILTER CMAKE_PROPERTY_LIST EXCLUDE REGEX "^LOCATION$|^LOCATION_|_LOCATION$")
-# For some reason, "TYPE" shows up twice - others might too?
-list(REMOVE_DUPLICATES CMAKE_PROPERTY_LIST)
-
 OPTION(ENABLE_OPENSSL_FROM_SOURCE "BUILD OPENSSL FROM SOURCE AT CONFIGURE TIME" ON)
 
 if(ENABLE_OPENSSL_FROM_SOURCE)

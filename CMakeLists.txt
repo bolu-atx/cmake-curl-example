@@ -4,6 +4,8 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 PROJECT(test-curl
 		LANGUAGES CXX)
 
+
+LIST(REVERSE CMAKE_FIND_LIBRARY_SUFFIXES)
 #========== Add CPM package manager ================= 
 set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM.cmake")
 set(CPM_VERSION 0.18)
@@ -93,29 +95,29 @@ if (MSVC)
 	set(CURL_PLATFORM_OPTIONS "CMAKE_USE_WINSSL ON;CMAKE_USE_OPENSSL OFF")
 elseif(APPLE)
 	set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl" CACHE INTERNAL "OPENSSL ROOT DIR")
-	set(OPENSSL_LIBRARIES "/usr/local/opt/openssl/lib" CACHE INTERNAL "OPENSSL lib dir")
-	set(ENV{OPENSSL_ROOT_DIR} "/usr/local/opt/openssl")
-	find_library(OPENSSL_CRYPTO_LIB
-		NAME libcrypto.a crypto.a
-		HINTS ${OPENSSL_ROOT_DIR}
-		PATH_SUFFIXES
-		lib
-		NO_DEFAULT_PATH)
-	find_library(OPENSSL_SSL_LIB
-		NAME ssl.a libssl.a
-		HINTS ${OPENSSL_ROOT_DIR}
-		PATH_SUFFIXES
-		lib
-		NO_DEFAULT_PATH)
-	set(OPENSSL_LIBS ${OPENSSL_SSL_LIB} ${OPENSSL_CRYPTO_LIB})
-	message(STATUS "OPENSSL LIB DIR ${OPENSSL_LIBRARIES}, INCLUDE DIR ${OPENSSL_INCLUDE_DIR}, LIBs ${OPENSSL_LIBS}")
-	add_library(libssl INTERFACE)
-	add_library(libcrypto INTERFACE)
-	target_link_libraries(libcrypto INTERFACE ${OPENSSL_CRYPTO_LIB})
-	target_link_libraries(libssl INTERFACE ${OPENSSL_SSL_LIB})
-	target_include_directories(libssl INTERFACE ${OPENSSL_INCLUDE_DIR})
-	target_include_directories(libcrypto INTERFACE ${OPENSSL_INCLUDE_DIR})
-	set(CURL_PLATFORM_OPTIONS "CMAKE_USE_SECTRANSP OFF;CMAKE_USE_OPENSSL ON")
+	# set(OPENSSL_LIBRARIES "/usr/local/opt/openssl/lib" CACHE INTERNAL "OPENSSL lib dir")
+	# set(ENV{OPENSSL_ROOT_DIR} "/usr/local/opt/openssl")
+	# find_library(OPENSSL_CRYPTO_LIB
+	# 	NAME libcrypto.a crypto.a
+	# 	HINTS ${OPENSSL_ROOT_DIR}
+	# 	PATH_SUFFIXES
+	# 	lib
+	# 	NO_DEFAULT_PATH)
+	# find_library(OPENSSL_SSL_LIB
+	# 	NAME ssl.a libssl.a
+	# 	HINTS ${OPENSSL_ROOT_DIR}
+	# 	PATH_SUFFIXES
+	# 	lib
+	# 	NO_DEFAULT_PATH)
+	# set(OPENSSL_LIBS ${OPENSSL_SSL_LIB} ${OPENSSL_CRYPTO_LIB})
+	# message(STATUS "OPENSSL LIB DIR ${OPENSSL_LIBRARIES}, INCLUDE DIR ${OPENSSL_INCLUDE_DIR}, LIBs ${OPENSSL_LIBS}")
+	# add_library(libssl INTERFACE)
+	# add_library(libcrypto INTERFACE)
+	# target_link_libraries(libcrypto INTERFACE ${OPENSSL_CRYPTO_LIB})
+	# target_link_libraries(libssl INTERFACE ${OPENSSL_SSL_LIB})
+	# target_include_directories(libssl INTERFACE ${OPENSSL_INCLUDE_DIR})
+	# target_include_directories(libcrypto INTERFACE ${OPENSSL_INCLUDE_DIR})
+	# set(CURL_PLATFORM_OPTIONS "CMAKE_USE_SECTRANSP OFF;CMAKE_USE_OPENSSL ON")
 else()
 	set(CURL_PLATFORM_OPTIONS "CMAKE_USE_OPENSSL ON")
 endif()
@@ -136,8 +138,5 @@ CPMAddPackage(
 
 add_executable(test-curl main.cpp)
 target_link_libraries(test-curl libcurl)
-
-
 print_target_properties(test-curl)
 print_target_properties(libcurl)
-print_target_properties(OpenSSL::Crypto)
